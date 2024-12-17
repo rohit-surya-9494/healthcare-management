@@ -1,0 +1,108 @@
+-- Drop tables with CASCADE to remove dependent objects
+DROP TABLE IF EXISTS healthcare_management.visit_details CASCADE;
+DROP TABLE IF EXISTS healthcare_management.patient_medical_history CASCADE;
+DROP TABLE IF EXISTS healthcare_management.patient_info CASCADE;
+
+-- Now, recreate the tables
+-- Patient info table
+CREATE TABLE IF NOT EXISTS healthcare_management.patient_info (
+    email VARCHAR(100) PRIMARY KEY,
+    hashed_password VARCHAR(100) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    residential_address VARCHAR(100) NOT NULL,
+    gender VARCHAR(20) NOT NULL
+);
+
+-- Health record table
+CREATE TABLE IF NOT EXISTS healthcare_management.health_record (
+    health_record_id INT PRIMARY KEY,
+    record_date DATE NOT NULL,
+    conditions VARCHAR(150) NOT NULL,
+    surgeries VARCHAR(150) NOT NULL,
+    medications VARCHAR(150) NOT NULL
+);
+
+-- Medical staff (doctor) table
+CREATE TABLE IF NOT EXISTS healthcare_management.medical_staff (
+    email VARCHAR(100) PRIMARY KEY,
+    gender VARCHAR(20) NOT NULL,
+    user_password VARCHAR(100) NOT NULL,
+    staff_name VARCHAR(100) NOT NULL
+);
+
+-- Patient appointments table
+CREATE TABLE IF NOT EXISTS healthcare_management.patient_appointments (
+    appointment_id INT PRIMARY KEY,
+    appointment_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    appointment_status VARCHAR(20) NOT NULL
+);
+
+-- Visit details table
+CREATE TABLE IF NOT EXISTS healthcare_management.visit_details (
+    patient_email VARCHAR(100) NOT NULL,
+    appointment_id SERIAL,
+    visit_concerns VARCHAR(100) NOT NULL,
+    visit_symptoms VARCHAR(100) NOT NULL,
+    FOREIGN KEY (patient_email) REFERENCES healthcare_management.patient_info (email),
+    FOREIGN KEY (appointment_id) REFERENCES healthcare_management.patient_appointments (appointment_id),
+    PRIMARY KEY (patient_email, appointment_id)
+);
+
+-- Doctor availability table
+CREATE TABLE IF NOT EXISTS healthcare_management.doctor_availability (
+    availability_id SERIAL UNIQUE,
+    shift_start_time TIME NOT NULL,
+    shift_end_time TIME NOT NULL,
+    break_duration TIME NOT NULL,
+    available_day VARCHAR(20) NOT NULL,
+    PRIMARY KEY (availability_id, shift_start_time, shift_end_time, break_duration, available_day)
+);
+
+-- Patient medical history table
+CREATE TABLE IF NOT EXISTS healthcare_management.patient_medical_history (
+    patient_email VARCHAR(100) NOT NULL,
+    history_id SERIAL,
+    FOREIGN KEY (patient_email) REFERENCES healthcare_management.patient_info (email),
+    FOREIGN KEY (history_id) REFERENCES healthcare_management.health_record (health_record_id),
+    PRIMARY KEY (history_id)
+);
+
+-- Medical diagnosis table
+CREATE TABLE IF NOT EXISTS healthcare_management.medical_diagnosis (
+    appointment_id SERIAL,
+    doctor_email VARCHAR(100) NOT NULL,
+    diagnosis_description VARCHAR(150) NOT NULL,
+    prescribed_medicine VARCHAR(150) NOT NULL,
+    FOREIGN KEY (appointment_id) REFERENCES healthcare_management.patient_appointments (appointment_id),
+    FOREIGN KEY (doctor_email) REFERENCES healthcare_management.medical_staff (email),
+    PRIMARY KEY (appointment_id, doctor_email)
+);
+
+-- Staff schedule table
+CREATE TABLE IF NOT EXISTS healthcare_management.staff_schedule (
+    schedule_id SERIAL,
+    doctor_email VARCHAR(100) NOT NULL,
+    FOREIGN KEY (schedule_id) REFERENCES healthcare_management.doctor_availability (availability_id),
+    FOREIGN KEY (doctor_email) REFERENCES healthcare_management.medical_staff (email),
+    PRIMARY KEY (schedule_id, doctor_email)
+);
+
+-- Doctor patient history table
+CREATE TABLE IF NOT EXISTS healthcare_management.doctor_patient_history (
+    record_id SERIAL,
+    doctor_email VARCHAR(100) NOT NULL,
+    FOREIGN KEY (doctor_email) REFERENCES healthcare_management.medical_staff (email),
+    FOREIGN KEY (record_id) REFERENCES healthcare_management.health_record (health_record_id),
+    PRIMARY KEY (record_id, doctor_email)
+);
+
+-- Additional table: appointment logs
+CREATE TABLE IF NOT EXISTS healthcare_management.appointment_logs (
+    log_id SERIAL PRIMARY KEY,
+    appointment_id INT NOT NULL,
+    change_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    change_description TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES healthcare_management.patient_appointments (appointment_id)
+);
